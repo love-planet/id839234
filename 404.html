@@ -3,43 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Date #1</title>
+    <title>Loading...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #fff;
+        }
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
+    <div class="loader">Загрузка...</div>
+
 <script>
 (async () => {
-    const path = window.location.pathname;
+    const path = window.location.pathname.replace(/\/$/, "") || "/";
 
-    // Если это настоящий 404-файл, а не случайный slug
-    if (path === "/" || path === "/404.html") {
-        window.location.replace("/");
+    // Если это корень или сам 404 — ничего не делаем
+    if (path === "/" || path === "/404.html" || path === "/index.html") {
+        document.querySelector(".loader")?.remove();
         return;
     }
 
     try {
-        // Загружаем основную страницу GitHub Pages
-        const response = await fetch("/");
+        const response = await fetch("/", {
+            cache: "no-store",
+            headers: {
+                "Accept": "text/html"
+            }
+        });
 
         if (!response.ok) {
-            throw new Error("Не удалось загрузить страницу");
+            throw new Error("Ошибка загрузки");
         }
 
         const html = await response.text();
 
-        // Подменяем содержимое текущей 404-страницы
-        // URL /jue8nei9d3s при этом остаётся
+        // Сохраняем уникальный путь (можно использовать на основной странице)
+        try {
+            sessionStorage.setItem("entry_path", path);
+            sessionStorage.setItem("entry_full", window.location.href);
+        } catch (e) {}
+
+        // Полностью заменяем документ
         document.open();
         document.write(html);
         document.close();
 
+        // После подмены пытаемся вернуть оригинальный путь в адресную строку
+        // (на случай если что-то его сбросит)
+        setTimeout(() => {
+            try {
+                history.replaceState(null, "", path);
+            } catch (e) {}
+        }, 50);
+
     } catch (error) {
         document.body.innerHTML = `
             <div style="
-                font-family:Arial;
-                text-align:center;
-                padding:50px;
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 80px 20px;
+                color: #333;
             ">
-                <h2>Страница временно недоступна</h2>
+                <h2 style="margin-bottom: 12px;">Страница временно недоступна</h2>
+                <p style="color: #666; margin: 0;">Попробуйте обновить страницу</p>
             </div>
         `;
     }
